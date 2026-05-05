@@ -1,6 +1,6 @@
 import os
-
-from flask import Flask
+from . import auth, card
+from flask import Flask, render_template
 
 
 def create_app(test_config=None):
@@ -25,5 +25,13 @@ def create_app(test_config=None):
     @app.route("/hello")
     def hello():
         return "Hello, World!"
-
+    
+    @app.route("/list")
+    def index():
+        return render_template("card/list.html")
+    
+    app.register_blueprint(auth.bp)
+    app.register_blueprint(card.bp)
+    
     return app
+
