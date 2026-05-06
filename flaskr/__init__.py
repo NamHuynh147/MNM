@@ -27,8 +27,12 @@ def create_app(test_config=None):
         return "Hello, World!"
     
     @app.route("/list")
-    def index():
+    def list_cards():
         return render_template("card/list.html")
+    
+    @app.route("/")
+    def home():
+        return render_template("home.html")
     
     app.register_blueprint(auth.bp)
     app.register_blueprint(card.bp)

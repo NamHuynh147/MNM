@@ -2,12 +2,12 @@ body {
     font-family: 'Segoe UI', sans-serif;
     margin: 0;
     padding: 0;
-    background: url("images/nen.jpg") no-repeat center center fixed;
+    background: url("/static/images/nen.jpg") no-repeat center center fixed;
     background-size: cover;
 }
 
 header {
-    background: rgba(255, 182, 193, 0.8); /* màu hồng pastel */
+    background: rgba(255, 182, 193, 0.8);
     padding: 20px;
     text-align: center;
 }
@@ -26,12 +26,12 @@ nav a {
 }
 
 main {
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.95);
     margin: 20px auto;
-    padding: 20px;
-    width: 80%;
+    padding: 40px;
+    width: 85%;
     border-radius: 10px;
-    box-shadow: 0 0 10px #aaa;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
 }
 
 footer {
@@ -39,4 +39,122 @@ footer {
     padding: 10px;
     background: rgba(255, 182, 193, 0.8);
     color: #fff;
+}
+
+/* Hero Section */
+.hero {
+    text-align: center;
+    padding: 40px 20px;
+    background: linear-gradient(135deg, rgba(255, 182, 193, 0.6), rgba(255, 240, 245, 0.6));
+    border-radius: 10px;
+    margin-bottom: 40px;
+}
+
+.hero h1 {
+    font-size: 2.5em;
+    color: #d946a6;
+    margin: 0 0 10px 0;
+}
+
+.hero p {
+    font-size: 1.1em;
+    color: #666;
+    margin: 0 0 20px 0;
+}
+
+/* Showcase Section */
+.showcase {
+    margin-bottom: 40px;
+}
+
+.showcase h2 {
+    text-align: center;
+    font-size: 2em;
+    color: #d946a6;
+    margin-bottom: 30px;
+}
+
+.card-container {
+    display: flex;
+    justify-content: space-around;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    flex: 1;
+    min-width: 200px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.card p {
+    font-size: 1.1em;
+    color: #333;
+    margin: 0;
+    font-weight: bold;
+}
+
+/* CTA Section */
+.cta {
+    text-align: center;
+    padding: 40px 20px;
+    background: linear-gradient(135deg, rgba(217, 70, 166, 0.1), rgba(255, 182, 193, 0.2));
+    border-radius: 10px;
+}
+
+.cta h2 {
+    font-size: 2em;
+    color: #d946a6;
+    margin: 0 0 20px 0;
+}
+
+/* Buttons */
+.btn-primary, .btn-secondary {
+    padding: 12px 30px;
+    font-size: 1em;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-primary {
+    background-color: #d946a6;
+    color: white;
+    margin: 10px 5px;
+}
+
+.btn-primary:hover {
+    background-color: #c1359e;
+    transform: scale(1.05);
+}
+
+.btn-secondary {
+    background-color: #f0ad4e;
+    color: white;
+    margin: 10px 5px;
+}
+
+.btn-secondary:hover {
+    background-color: #ec971f;
+    transform: scale(1.05);
 }
