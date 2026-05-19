@@ -1,0 +1,238 @@
+.card-designer {
+  display: grid;
+  grid-template-columns: 220px minmax(320px, 1fr) 260px;
+  gap: 18px;
+  align-items: start;
+  margin: 24px 0;
+}
+
+.card-designer.is-readonly {
+  display: block;
+  margin: 0;
+}
+
+.designer-panel {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 8px 22px rgba(31, 41, 55, 0.08);
+}
+
+.designer-panel h2 {
+  font-size: 1rem;
+  color: #1f2937;
+  margin-bottom: 12px;
+}
+
+.designer-panel p {
+  color: #64748b;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-top: 12px;
+}
+
+.designer-panel button,
+.designer-upload {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  color: #1f2937;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 8px;
+  text-align: center;
+  transition: 0.2s ease;
+}
+
+.designer-panel button:hover,
+.designer-upload:hover {
+  background: #eef2ff;
+  border-color: #667eea;
+}
+
+.designer-upload input {
+  display: none;
+}
+
+.designer-stickers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.designer-stickers button {
+  font-size: 1.35rem;
+  margin: 0;
+  aspect-ratio: 1;
+  padding: 0;
+}
+
+.designer-stage-wrap {
+  width: 100%;
+}
+
+.designer-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 5 / 3;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+  user-select: none;
+  touch-action: none;
+}
+
+.designer-stage::before {
+  content: '';
+  position: absolute;
+  inset: 18px;
+  border: 1px dashed rgba(148, 163, 184, 0.55);
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.designer-element {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  cursor: grab;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-align: center;
+  line-height: 1.15;
+  transform-origin: center;
+}
+
+.designer-element:active {
+  cursor: grabbing;
+}
+
+.designer-element.is-selected {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+}
+
+.card-designer.is-readonly .designer-element {
+  cursor: default;
+}
+
+.designer-image {
+  padding: 0;
+  background: transparent;
+}
+
+.designer-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.designer-shape {
+  min-width: 30px;
+  min-height: 30px;
+}
+
+.designer-sticker {
+  background: transparent;
+}
+
+.designer-properties label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #374151;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.designer-properties input,
+.designer-properties textarea,
+.designer-properties select {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 9px 10px;
+  font: inherit;
+  width: 100%;
+}
+
+.designer-properties input[type='color'] {
+  height: 40px;
+  padding: 4px;
+}
+
+.designer-properties input[type='range'] {
+  padding: 0;
+}
+
+.designer-grid-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.designer-actions-small {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.designer-actions-small button {
+  margin: 0;
+  padding: 9px 8px;
+  font-size: 0.85rem;
+}
+
+.designer-actions-small .danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+@media (max-width: 1080px) {
+  .card-designer {
+    grid-template-columns: 1fr;
+  }
+
+  .designer-tools,
+  .designer-properties {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .designer-tools h2,
+  .designer-tools p,
+  .designer-properties h2,
+  .designer-properties p {
+    grid-column: 1 / -1;
+  }
+
+  .designer-stickers,
+  .designer-grid-controls,
+  .designer-actions-small {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .designer-panel,
+  .designer-tools,
+  .designer-properties {
+    display: block;
+  }
+
+  .designer-element {
+    font-size: clamp(14px, 4vw, 30px) !important;
+  }
+}
