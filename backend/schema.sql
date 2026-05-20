@@ -45,3 +45,12 @@ ON CONFLICT DO NOTHING;
 INSERT INTO users (name, email) VALUES
 ('Người Dùng Demo', 'demo@example.com')
 ON CONFLICT DO NOTHING;
+
+
+-- Add a table for storing card images
+CREATE TABLE IF NOT EXISTS card_images (
+  image_id SERIAL PRIMARY KEY,
+  card_id INTEGER REFERENCES cards(card_id) ON DELETE CASCADE,
+  image_url VARCHAR(500) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
