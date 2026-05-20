@@ -67,6 +67,16 @@ function Navbar() {
           </li>
           {user ? (
             <>
+              {user.role === 'admin' && (
+                <li>
+                  <Link
+                    to='/admin'
+                    className={`nav-link ${isActive('/admin') ? 'active' : ''}`}
+                  >
+                    Admin
+                  </Link>
+                </li>
+              )}
               <li className='nav-user'>Xin chào, {user.name}</li>
               <li>
                 <button className='nav-link nav-button' type='button' onClick={handleLogout}>
