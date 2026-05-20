@@ -6,6 +6,8 @@ import CardList from './pages/CardList'
 import CreateCard from './pages/CreateCard'
 import DetailCard from './pages/DetailCard'
 import EditCard from './pages/EditCard'
+import Login from './pages/Login'
+import Register from './pages/Register'
 import './styles/App.css'
 
 function App() {
@@ -19,6 +21,8 @@ function App() {
           <Route path='/cards/create' element={<CreateCard />} />
           <Route path='/cards/:id' element={<DetailCard />} />
           <Route path='/cards/:id/edit' element={<EditCard />} />
+          <Route path='/login' element={<Login />} />
+          <Route path='/register' element={<Register />} />
         </Routes>
       </main>
       <footer className='app-footer'>

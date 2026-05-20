@@ -1,5 +1,5 @@
 -- Cập nhật bảng users để thêm password
-ALTER TABLE users ADD COLUMN password VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255);
 
 -- Nếu bảng users đã có dữ liệu cũ, bạn có thể reset:
 -- DELETE FROM cards;
