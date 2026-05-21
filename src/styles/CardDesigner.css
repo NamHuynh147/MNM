@@ -1,0 +1,611 @@
+.card-designer {
+  display: grid;
+  grid-template-columns: 220px minmax(320px, 1fr) 260px;
+  gap: 18px;
+  align-items: start;
+  margin: 24px 0;
+}
+
+.card-designer.is-readonly {
+  display: block;
+  margin: 0;
+}
+
+.designer-panel {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 8px 22px rgba(31, 41, 55, 0.08);
+}
+
+.designer-panel h2 {
+  font-size: 1rem;
+  color: #1f2937;
+  margin-bottom: 12px;
+}
+
+.designer-panel p {
+  color: #64748b;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-top: 12px;
+}
+
+.designer-panel button,
+.designer-upload {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  color: #1f2937;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 8px;
+  text-align: center;
+  transition: 0.2s ease;
+}
+
+.designer-panel button:hover,
+.designer-upload:hover {
+  background: #eef2ff;
+  border-color: #667eea;
+}
+
+.designer-upload input {
+  display: none;
+}
+
+.designer-stickers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.designer-stickers button {
+  font-size: 1.35rem;
+  margin: 0;
+  aspect-ratio: 1;
+  padding: 0;
+}
+
+.designer-stage-wrap {
+  width: 100%;
+}
+
+.designer-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 5 / 3;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+  user-select: none;
+  touch-action: none;
+}
+
+.designer-stage::before {
+  content: "";
+  position: absolute;
+  inset: 18px;
+  border: 1px dashed rgba(148, 163, 184, 0.55);
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.designer-element {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  cursor: grab;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-align: center;
+  line-height: 1.15;
+  transform-origin: center;
+}
+
+.designer-element:active {
+  cursor: grabbing;
+}
+
+.designer-element.is-selected {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+}
+
+.card-designer.is-readonly .designer-element {
+  cursor: default;
+}
+
+.designer-image {
+  padding: 0;
+  background: transparent;
+}
+
+.designer-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.designer-shape {
+  min-width: 30px;
+  min-height: 30px;
+}
+
+.designer-sticker {
+  background: transparent;
+}
+
+.designer-properties label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #374151;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.designer-properties input,
+.designer-properties textarea,
+.designer-properties select {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 9px 10px;
+  font: inherit;
+  width: 100%;
+}
+
+.designer-properties input[type="color"] {
+  height: 40px;
+  padding: 4px;
+}
+
+.designer-properties input[type="range"] {
+  padding: 0;
+}
+
+.designer-grid-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.designer-actions-small {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.designer-actions-small button {
+  margin: 0;
+  padding: 9px 8px;
+  font-size: 0.85rem;
+}
+
+.designer-actions-small .danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+/* CKEditor Styles */
+.ckeditor-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ckeditor-container {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s;
+}
+
+.ckeditor-container:hover {
+  border-color: #3b82f6;
+}
+
+.ckeditor-container:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.ck-editor__main {
+  min-height: 150px;
+  max-height: 250px;
+}
+
+.ck.ck-editor__main > .ck-editor__editable {
+  min-height: 150px;
+  background: #f9fafb;
+}
+
+.ck.ck-toolbar {
+  background: #f3f4f6 !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+/* CKEditor nâng cao */
+.ck-editor__editable {
+  min-height: 250px;
+  max-height: 400px;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+/* Style cho highlight */
+.ck-content .marker-yellow {
+  background-color: #fff2a8;
+}
+
+.ck-content .marker-green {
+  background-color: #c8e6d9;
+}
+
+.ck-content .marker-pink {
+  background-color: #f8d7da;
+}
+
+.ck-content .marker-blue {
+  background-color: #d1ecf1;
+}
+
+.ck-content .pen-red {
+  color: #e74c3c;
+}
+
+.ck-content .pen-green {
+  color: #27ae60;
+}
+
+/* Style cho bảng */
+.ck-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 10px 0;
+}
+
+.ck-content table td,
+.ck-content table th {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+/* Responsive cho media */
+.ck-content .media {
+  max-width: 100%;
+  margin: 10px 0;
+}
+
+.ck-content iframe {
+  max-width: 100%;
+}
+
+/* Custom scrollbar cho editor */
+.ck-editor__editable::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.ck-editor__editable::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.ck-editor__editable::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.ck-editor__editable::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+/* CKEditor Styles */
+.ckeditor-wrapper {
+  margin-bottom: 16px;
+}
+
+.ckeditor-wrapper label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.ck-editor__main {
+  min-height: 200px;
+  max-height: 300px;
+}
+
+.ck.ck-editor__main > .ck-editor__editable {
+  min-height: 200px;
+  background: #ffffff;
+  border-radius: 8px;
+}
+
+.ck.ck-toolbar {
+  background: #f3f4f6 !important;
+  border-radius: 8px 8px 0 0 !important;
+}
+
+.ck.ck-editor__editable_inline {
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+}
+
+.ck.ck-editor__editable_inline:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* Context Menu */
+.context-menu {
+  position: fixed;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+  min-width: 160px;
+  overflow: hidden;
+}
+
+.context-menu button {
+  width: 100%;
+  padding: 8px 16px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.context-menu button:hover {
+  background: #f3f4f6;
+}
+
+.context-menu hr {
+  margin: 4px 0;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Designer hints */
+.designer-hint {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 12px;
+  text-align: center;
+}
+
+/* Stickers section */
+.designer-stickers {
+  margin-top: 12px;
+}
+
+.designer-stickers p {
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #374151;
+}
+
+.designer-stickers button {
+  font-size: 24px;
+  padding: 8px;
+  margin: 4px;
+  width: 44px;
+  height: 44px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.designer-stickers button:hover {
+  background: #e5e7eb;
+  transform: scale(1.05);
+}
+/* Đảm bảo các element có thể kéo thả được */
+.designer-element {
+  cursor: move;
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.designer-element.is-selected {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.designer-element img,
+.designer-element > div {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* CKEditor không ảnh hưởng đến kéo thả */
+.ckeditor-wrapper {
+  position: relative;
+  z-index: 10;
+}
+
+.ck-editor__editable_inline {
+  min-height: 150px;
+}
+
+/* Ngăn CKEditor bắt sự kiện kéo thả */
+.ck-editor__editable_inline * {
+  user-select: text !important;
+}
+
+.stickers-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.stickers-grid button {
+  font-size: 24px;
+  padding: 8px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stickers-grid button:hover {
+  background: #e5e7eb;
+  transform: scale(1.05);
+}
+
+.context-menu {
+  position: fixed;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 160px;
+  overflow: hidden;
+}
+
+.context-menu button {
+  width: 100%;
+  padding: 8px 16px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.context-menu button:hover {
+  background: #f3f4f6;
+}
+
+.context-menu hr {
+  margin: 4px 0;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+}
+/* Đảm bảo element có thể kéo được */
+.designer-element {
+  cursor: grab;
+  position: absolute;
+  box-sizing: border-box;
+  touch-action: none; /* Ngăn scroll khi kéo trên mobile */
+}
+
+.designer-element:active {
+  cursor: grabbing;
+}
+
+.designer-element.is-selected {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  z-index: 1000 !important;
+}
+
+/* Ngăn con của element chặn sự kiện kéo */
+.designer-element * {
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+/* Ngoại lệ cho resize handles */
+.designer-element .resize-handle {
+  pointer-events: auto !important;
+}
+
+/* CKEditor wrapper không ảnh hưởng */
+.ckeditor-wrapper {
+  position: relative;
+  z-index: 10;
+}
+
+.ck-editor__editable_inline {
+  min-height: 150px;
+}
+
+/* Cho phép chọn text trong CKEditor khi đang chỉnh sửa */
+.ck-editor__editable_inline * {
+  pointer-events: auto !important;
+  user-select: text !important;
+}
+/* Resize handles */
+.resize-handle {
+  transition: transform 0.1s ease;
+}
+
+.resize-handle:hover {
+  transform: scale(1.2);
+  background: #3b82f6 !important;
+  border-color: #fff !important;
+}
+/* Responsive */
+@media (max-width: 768px) {
+  .ck-editor__main {
+    min-height: 120px;
+  }
+
+  .ck.ck-editor__main > .ck-editor__editable {
+    min-height: 120px;
+  }
+}
+@media (max-width: 1080px) {
+  .card-designer {
+    grid-template-columns: 1fr;
+  }
+
+  .designer-tools,
+  .designer-properties {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .designer-tools h2,
+  .designer-tools p,
+  .designer-properties h2,
+  .designer-properties p {
+    grid-column: 1 / -1;
+  }
+
+  .designer-stickers,
+  .designer-grid-controls,
+  .designer-actions-small {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .designer-panel,
+  .designer-tools,
+  .designer-properties {
+    display: block;
+  }
+
+  .designer-element {
+    font-size: clamp(14px, 4vw, 30px) !important;
+  }
+}

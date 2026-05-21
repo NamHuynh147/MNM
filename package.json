@@ -1,0 +1,28 @@
+{
+  "name": "testgis",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@ckeditor/ckeditor5-alignment": "^48.1.1",
+    "@ckeditor/ckeditor5-build-classic": "^41.4.2",
+    "@ckeditor/ckeditor5-font": "^48.1.1",
+    "@ckeditor/ckeditor5-highlight": "^48.1.1",
+    "@ckeditor/ckeditor5-html-embed": "^48.1.1",
+    "@ckeditor/ckeditor5-page-break": "^48.1.1",
+    "@ckeditor/ckeditor5-react": "^11.1.2",
+    "lucide-react": "^1.16.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^7.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "vite": "^5.0.0"
+  }
+}
