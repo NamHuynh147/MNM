@@ -1,32 +1,36 @@
-import express from 'express';
-import pool from '../db.js';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import express from "express";
+import pool from "../db.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET =
+  process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 // Register
-router.post('/register', async (req, res) => {
+router.post("/register", async (req, res) => {
   const { name, email, password, confirmPassword } = req.body;
 
   if (!name || !email || !password || !confirmPassword) {
-    return res.status(400).json({ error: 'Tất cả trường là bắt buộc' });
+    return res.status(400).json({ error: "Tất cả trường là bắt buộc" });
   }
 
   if (password !== confirmPassword) {
-    return res.status(400).json({ error: 'Mật khẩu không khớp' });
+    return res.status(400).json({ error: "Mật khẩu không khớp" });
   }
 
   if (password.length < 6) {
-    return res.status(400).json({ error: 'Mật khẩu phải ít nhất 6 ký tự' });
+    return res.status(400).json({ error: "Mật khẩu phải ít nhất 6 ký tự" });
   }
 
   try {
     // Check email exists
-    const existingUser = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const existingUser = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email],
+    );
     if (existingUser.rows.length > 0) {
-      return res.status(400).json({ error: 'Email đã tồn tại' });
+      return res.status(400).json({ error: "Email đã tồn tại" });
     }
 
     // Hash password
@@ -34,17 +38,20 @@ router.post('/register', async (req, res) => {
 
     // Create user
     const result = await pool.query(
-      'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING user_id, name, email, role',
-      [name, email, hashedPassword, 'user']
+      "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING user_id, name, email, role",
+      [name, email, hashedPassword, "user"],
     );
 
     const user = result.rows[0];
-    const token = jwt.sign({ userId: user.user_id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.user_id }, JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
     res.status(201).json({
-      message: 'Đăng ký thành công',
+      message: "Đăng ký thành công",
       token,
       user: {
+        id: user.user_id,
         user_id: user.user_id,
         name: user.name,
         email: user.email,
@@ -52,24 +59,26 @@ router.post('/register', async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('Lỗi đăng ký:', err);
-    res.status(500).json({ error: 'Lỗi server' });
+    console.error("Lỗi đăng ký:", err);
+    res.status(500).json({ error: "Lỗi server" });
   }
 });
 
 // Login
-router.post('/login', async (req, res) => {
+router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ error: 'Email và mật khẩu là bắt buộc' });
+    return res.status(400).json({ error: "Email và mật khẩu là bắt buộc" });
   }
 
   try {
     // Find user
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const result = await pool.query("SELECT * FROM users WHERE email = $1", [
+      email,
+    ]);
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Email hoặc mật khẩu không đúng' });
+      return res.status(401).json({ error: "Email hoặc mật khẩu không đúng" });
     }
 
     const user = result.rows[0];
@@ -77,49 +86,80 @@ router.post('/login', async (req, res) => {
     // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Email hoặc mật khẩu không đúng' });
+      return res.status(401).json({ error: "Email hoặc mật khẩu không đúng" });
     }
 
-    // Generate token
-    const token = jwt.sign({ userId: user.user_id }, JWT_SECRET, { expiresIn: '7d' });
+    // Generate token with userId
+    const token = jwt.sign({ userId: user.user_id }, JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
+    // Return user data (don't send password)
     res.json({
-      message: 'Đăng nhập thành công',
+      message: "Đăng nhập thành công",
       token,
       user: {
+        id: user.user_id,
         user_id: user.user_id,
         name: user.name,
         email: user.email,
-        role: user.role || 'user',
+        role: user.role || "user",
       },
     });
   } catch (err) {
-    console.error('Lỗi đăng nhập:', err);
-    res.status(500).json({ error: 'Lỗi server' });
+    console.error("Lỗi đăng nhập:", err);
+    res.status(500).json({ error: "Lỗi server" });
   }
 });
 
 // Get current user
-router.get('/me', async (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1];
+router.get("/me", async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({ error: 'Không có token' });
+    return res.status(401).json({ error: "Không có token" });
   }
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const result = await pool.query('SELECT user_id, name, email, role FROM users WHERE user_id = $1', [
-      decoded.userId,
-    ]);
+    console.log("Decoded token in /me:", decoded); // Debug log
+
+    const result = await pool.query(
+      "SELECT user_id, name, email, role FROM users WHERE user_id = $1",
+      [decoded.userId],
+    );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'User không tìm thấy' });
+      return res.status(404).json({ error: "User không tìm thấy" });
     }
 
     res.json(result.rows[0]);
   } catch (err) {
-    res.status(401).json({ error: 'Token không hợp lệ' });
+    console.error("Token verification error:", err.message);
+    res.status(401).json({ error: "Token không hợp lệ" });
+  }
+});
+
+// Add a test endpoint to verify token
+router.get("/verify-token", async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ error: "Không có token" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    res.json({
+      valid: true,
+      userId: decoded.userId,
+      message: "Token hợp lệ",
+    });
+  } catch (err) {
+    res.json({
+      valid: false,
+      message: err.message,
+    });
   }
 });
 

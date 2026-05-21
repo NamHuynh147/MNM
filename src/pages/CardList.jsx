@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import * as api from "../services/api";
 import "../styles/CardList.css";
 import {
@@ -7,12 +7,16 @@ import {
   Plus,
   Search,
   X,
-  Clock,
   Edit,
   Trash2,
   FileText,
   Grid,
   Calendar,
+  Globe,
+  Lock,
+  Copy,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 function CardList() {
@@ -20,52 +24,171 @@ function CardList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filter, setFilter] = useState("all"); // all, recent, oldest
+  const [filter, setFilter] = useState("all");
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [cardsPerPage] = useState(3);
+
+  const isLoggedIn = !!localStorage.getItem("token");
+
+  // Get current user from localStorage
+  useEffect(() => {
+    const loadUser = async () => {
+      const token = localStorage.getItem("token");
+      const savedUser = localStorage.getItem("user");
+
+      if (token && savedUser) {
+        try {
+          const userData = JSON.parse(savedUser);
+          setUser(userData);
+        } catch (err) {
+          console.error("Error parsing user:", err);
+        }
+      }
+    };
+
+    loadUser();
+  }, []);
 
   useEffect(() => {
-    fetchCards();
-  }, []);
+    if (isLoggedIn && user) {
+      fetchCards();
+    } else {
+      setLoading(false);
+    }
+  }, [user, isLoggedIn]);
 
   const fetchCards = async () => {
     try {
       setLoading(true);
-      const data = await api.getCards();
-      setCards(data);
       setError(null);
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No token found");
+      }
+
+      const data = await api.getMyCards(token);
+      const cardsArray = Array.isArray(data) ? data : data.cards || [];
+      setCards(cardsArray);
     } catch (err) {
-      setError("Không thể lấy danh sách thiệp");
-      console.error(err);
+      console.error("Fetch cards error:", err);
+      setError(err.message || "Không thể lấy danh sách thiệp của bạn");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Bạn chắc chắn muốn xóa thiệp này?")) {
-      try {
-        await api.deleteCard(id);
-        setCards(cards.filter((card) => card.card_id !== id));
-      } catch (err) {
-        setError("Lỗi xóa thiệp");
+    if (!isLoggedIn) {
+      alert("Vui lòng đăng nhập để xóa thiệp");
+      navigate("/login");
+      return;
+    }
+
+    if (!window.confirm("Bạn chắc chắn muốn xóa thiệp này?")) return;
+
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      await api.deleteCard(id, token);
+      setCards(cards.filter((card) => card.card_id !== id));
+      // Reset to first page if current page has no cards after deletion
+      const newFilteredCards = getFilteredCards().filter(
+        (card) => card.card_id !== id,
+      );
+      const newTotalPages = Math.ceil(newFilteredCards.length / cardsPerPage);
+      if (currentPage > newTotalPages && newTotalPages > 0) {
+        setCurrentPage(newTotalPages);
+      } else if (newTotalPages === 0) {
+        setCurrentPage(1);
       }
+    } catch (err) {
+      console.error("Delete error:", err);
+      setError("Lỗi xóa thiệp: " + (err.message || "Vui lòng thử lại"));
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Filter and sort cards
+  const handleToggleVisibility = async (cardId, currentStatus) => {
+    if (!isLoggedIn) {
+      alert("Vui lòng đăng nhập để thay đổi quyền riêng tư");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      const updatedCard = await api.toggleCardVisibility(
+        cardId,
+        !currentStatus,
+        token,
+      );
+
+      setCards(
+        cards.map((card) =>
+          card.card_id === cardId
+            ? {
+                ...card,
+                is_public: !currentStatus,
+                published_at: !currentStatus ? new Date().toISOString() : null,
+              }
+            : card,
+        ),
+      );
+
+      const message = !currentStatus
+        ? "Thiệp đã được chia sẻ công khai!"
+        : "Thiệp đã chuyển về chế độ riêng tư";
+      alert(message);
+    } catch (err) {
+      console.error("Toggle visibility error:", err);
+      setError("Không thể cập nhật trạng thái công khai");
+    }
+  };
+
+  const handleDuplicate = async (card) => {
+    if (!isLoggedIn) {
+      alert("Vui lòng đăng nhập để sao chép thiệp");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      const duplicatedCard = {
+        title: `${card.title} (Sao chép)`,
+        description: card.description,
+        design_data: card.design_data,
+        template_id: card.template_id,
+        is_public: false,
+      };
+
+      const newCard = await api.createCard(duplicatedCard, token);
+      setCards([newCard, ...cards]);
+      alert("Đã sao chép thiệp thành công!");
+    } catch (err) {
+      console.error("Duplicate error:", err);
+      setError("Không thể sao chép thiệp");
+    }
+  };
+
   const getFilteredCards = () => {
     let filtered = [...cards];
 
-    // Search filter
     if (searchTerm) {
       filtered = filtered.filter(
         (card) =>
-          card.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          card.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (card.description &&
             card.description.toLowerCase().includes(searchTerm.toLowerCase())),
       );
     }
 
-    // Sort filter
     switch (filter) {
       case "recent":
         filtered.sort(
@@ -76,6 +199,12 @@ function CardList() {
         filtered.sort(
           (a, b) => new Date(a.created_at) - new Date(b.created_at),
         );
+        break;
+      case "public":
+        filtered = filtered.filter((card) => card.is_public === true);
+        break;
+      case "private":
+        filtered = filtered.filter((card) => card.is_public === false);
         break;
       default:
         filtered.sort(
@@ -88,18 +217,34 @@ function CardList() {
     return filtered;
   };
 
-  // Render mini preview of the card design
-  // Render mini preview of the card design
+  // Pagination logic
+  const filteredCards = getFilteredCards();
+  const totalCards = filteredCards.length;
+  const totalPages = Math.ceil(totalCards / cardsPerPage);
+  const indexOfLastCard = currentPage * cardsPerPage;
+  const indexOfFirstCard = indexOfLastCard - cardsPerPage;
+  const currentCards = filteredCards.slice(indexOfFirstCard, indexOfLastCard);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const goToPreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  // Reset to page 1 when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filter]);
+
   const renderCardPreview = (card) => {
     const designData = card.design_data || {};
     const backgroundColor = designData.backgroundColor || "#fff7ed";
     const backgroundImage = designData.backgroundImage || null;
     const elements = designData.elements || [];
-
-    // Get first few elements for preview
     const previewElements = elements.slice(0, 5);
 
-    // Preview style with optional background image
     const previewStyle = {
       backgroundColor: backgroundImage ? "transparent" : backgroundColor,
       backgroundImage: backgroundImage ? `url(${backgroundImage})` : "none",
@@ -114,7 +259,6 @@ function CardList() {
       <div className="card-mini-preview" style={previewStyle}>
         <div className="preview-content">
           {previewElements.map((element, idx) => {
-            // Calculate position percentages
             const leftPercent = ((element.x || 0) / 900) * 100;
             const topPercent = ((element.y || 0) / 540) * 100;
 
@@ -127,7 +271,6 @@ function CardList() {
               pointerEvents: "none",
             };
 
-            // Handle different element types
             if (element.type === "text") {
               const style = {
                 ...baseStyle,
@@ -182,12 +325,7 @@ function CardList() {
                   alt={element.alt || "Preview"}
                   style={style}
                   onError={(e) => {
-                    // Fallback if image fails to load
                     e.target.style.display = "none";
-                    const fallback = document.createElement("div");
-                    fallback.textContent = "🖼️";
-                    fallback.style.cssText = `${style.cssText} font-size: 32px; display: flex; align-items: center; justify-content: center;`;
-                    e.target.parentNode.appendChild(fallback);
                   }}
                 />
               );
@@ -224,17 +362,61 @@ function CardList() {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("vi-VN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("vi-VN", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (err) {
+      return "Invalid date";
+    }
   };
 
-  const filteredCards = getFilteredCards();
+  if (!isLoggedIn) {
+    return (
+      <div className="container">
+        <div className="page-header">
+          <h1>
+            <Lock
+              size={28}
+              style={{
+                display: "inline",
+                marginRight: "10px",
+                verticalAlign: "middle",
+              }}
+            />
+            Thiệp Của Tôi
+          </h1>
+          <p className="subtitle">Đăng nhập để quản lý thiệp của bạn</p>
+        </div>
+        <div className="empty-state">
+          <Lock size={64} />
+          <h3>Bạn chưa đăng nhập</h3>
+          <p>Vui lòng đăng nhập để xem và quản lý thiệp của bạn</p>
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              justifyContent: "center",
+              marginTop: "20px",
+            }}
+          >
+            <Link to="/login" className="btn-primary">
+              Đăng nhập
+            </Link>
+            <Link to="/register" className="btn-secondary">
+              Đăng ký
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading)
     return (
@@ -242,7 +424,7 @@ function CardList() {
         <div className="loading-skeleton">
           <div className="skeleton-header"></div>
           <div className="skeleton-grid">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3].map((i) => (
               <div key={i} className="skeleton-card"></div>
             ))}
           </div>
@@ -267,7 +449,7 @@ function CardList() {
       <div className="page-header">
         <div>
           <h1>
-            <Grid
+            <Lock
               size={28}
               style={{
                 display: "inline",
@@ -275,17 +457,24 @@ function CardList() {
                 verticalAlign: "middle",
               }}
             />
-            Danh Sách Thiệp Của Tôi
+            Thiệp Của Tôi
           </h1>
-          <p className="subtitle">Quản lý và tùy chỉnh các thiệp của bạn</p>
+          <p className="subtitle">
+            Quản lý thiệp cá nhân và chia sẻ với cộng đồng
+          </p>
         </div>
-        <Link to="/cards/create" className="btn-primary">
-          <Plus size={18} style={{ marginRight: "5px" }} />
-          Tạo Thiệp Mới
-        </Link>
+        <div className="header-actions">
+          <Link to="/cards/public" className="btn-secondary">
+            <Globe size={18} style={{ marginRight: "5px" }} />
+            Khám Phá
+          </Link>
+          <Link to="/cards/create" className="btn-primary">
+            <Plus size={18} style={{ marginRight: "5px" }} />
+            Tạo Thiệp Mới
+          </Link>
+        </div>
       </div>
 
-      {/* Search and Filter Bar */}
       <div className="search-filter-bar">
         <div className="search-box">
           <Search
@@ -300,7 +489,7 @@ function CardList() {
           />
           <input
             type="text"
-            placeholder="Tìm kiếm thiệp..."
+            placeholder="Tìm kiếm thiệp của bạn..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ paddingLeft: "35px" }}
@@ -317,7 +506,7 @@ function CardList() {
             className={filter === "all" ? "active" : ""}
             onClick={() => setFilter("all")}
           >
-            Mới nhất
+            Tất cả
           </button>
           <button
             className={filter === "recent" ? "active" : ""}
@@ -330,6 +519,20 @@ function CardList() {
             onClick={() => setFilter("oldest")}
           >
             Cũ nhất
+          </button>
+          <button
+            className={filter === "public" ? "active" : ""}
+            onClick={() => setFilter("public")}
+          >
+            <Globe size={14} style={{ marginRight: "4px" }} />
+            Công khai
+          </button>
+          <button
+            className={filter === "private" ? "active" : ""}
+            onClick={() => setFilter("private")}
+          >
+            <Lock size={14} style={{ marginRight: "4px" }} />
+            Riêng tư
           </button>
         </div>
       </div>
@@ -355,23 +558,26 @@ function CardList() {
       ) : (
         <>
           <div className="cards-stats">
-            Hiển thị {filteredCards.length} / {cards.length} thiệp
+            Hiển thị {currentCards.length} / {totalCards} thiệp
+            {totalPages > 1 && ` (Trang ${currentPage}/${totalPages})`}
           </div>
 
           <div className="cards-grid">
-            {filteredCards.map((card) => (
+            {currentCards.map((card) => (
               <div key={card.card_id} className="card-item">
-                {/* Card Preview */}
                 <div className="card-preview-container">
                   {renderCardPreview(card)}
-
-                  {/* Badge for template type */}
                   {card.template_name && (
                     <span className="card-badge">{card.template_name}</span>
                   )}
+                  <span
+                    className={`visibility-badge ${card.is_public ? "public" : "private"}`}
+                  >
+                    {card.is_public ? <Globe size={12} /> : <Lock size={12} />}
+                    {card.is_public ? "Công khai" : "Riêng tư"}
+                  </span>
                 </div>
 
-                {/* Card Info */}
                 <div className="card-info">
                   <h3 className="card-title">{card.title}</h3>
                   {card.description && (
@@ -405,7 +611,6 @@ function CardList() {
                     )}
                   </div>
 
-                  {/* Progress indicator for design completion */}
                   {card.design_data?.elements && (
                     <div className="design-progress">
                       <div className="progress-bar">
@@ -423,8 +628,31 @@ function CardList() {
                   )}
                 </div>
 
-                {/* Card Actions */}
                 <div className="card-actions">
+                  <button
+                    onClick={() =>
+                      handleToggleVisibility(card.card_id, card.is_public)
+                    }
+                    className={`btn-visibility ${card.is_public ? "public" : "private"}`}
+                    title={
+                      card.is_public
+                        ? "Chuyển thành riêng tư"
+                        : "Chia sẻ công khai"
+                    }
+                  >
+                    {card.is_public ? <Globe size={16} /> : <Lock size={16} />}
+                    {card.is_public ? "Công khai" : "Chia sẻ"}
+                  </button>
+
+                  <button
+                    onClick={() => handleDuplicate(card)}
+                    className="btn-duplicate"
+                    title="Sao chép thiệp"
+                  >
+                    <Copy size={16} style={{ marginRight: "5px" }} />
+                    Sao chép
+                  </button>
+
                   <Link
                     to={`/cards/${card.card_id}`}
                     className="btn-view"
@@ -433,6 +661,7 @@ function CardList() {
                     <Eye size={16} style={{ marginRight: "5px" }} />
                     Xem
                   </Link>
+
                   <Link
                     to={`/cards/${card.card_id}/edit`}
                     className="btn-edit"
@@ -441,6 +670,7 @@ function CardList() {
                     <Edit size={16} style={{ marginRight: "5px" }} />
                     Sửa
                   </Link>
+
                   <button
                     onClick={() => handleDelete(card.card_id)}
                     className="btn-delete"
@@ -453,6 +683,62 @@ function CardList() {
               </div>
             ))}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+                className="pagination-btn"
+              >
+                <ChevronLeft size={16} />
+                Trước
+              </button>
+
+              <div className="pagination-numbers">
+                {[...Array(totalPages)].map((_, index) => {
+                  const pageNumber = index + 1;
+                  // Show first page, last page, and pages around current page
+                  if (
+                    pageNumber === 1 ||
+                    pageNumber === totalPages ||
+                    (pageNumber >= currentPage - 1 &&
+                      pageNumber <= currentPage + 1)
+                  ) {
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => paginate(pageNumber)}
+                        className={`pagination-number ${currentPage === pageNumber ? "active" : ""}`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  } else if (
+                    pageNumber === currentPage - 2 ||
+                    pageNumber === currentPage + 2
+                  ) {
+                    return (
+                      <span key={pageNumber} className="pagination-dots">
+                        ...
+                      </span>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+
+              <button
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+                className="pagination-btn"
+              >
+                Sau
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>

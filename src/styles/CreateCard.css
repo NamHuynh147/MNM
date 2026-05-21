@@ -65,7 +65,27 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+.trial-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  color: #92400e;
+  font-size: 14px;
+}
 
+.trial-banner a {
+  color: #d97706;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.trial-banner a:hover {
+  color: #b45309;
+}
 @media (max-width: 900px) {
   .designer-meta {
     grid-template-columns: 1fr;

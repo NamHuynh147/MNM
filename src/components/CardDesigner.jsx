@@ -1,5 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "../styles/CardDesigner.css";
+import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+import { CKEditor } from "@ckeditor/ckeditor5-react";
+import {
+  Type,
+  Square,
+  Image as ImageIcon,
+  Copy,
+  Trash2,
+  BringToFront,
+  SendToBack,
+  Palette,
+  RotateCw,
+} from "lucide-react";
 
 const canvasSize = { width: 900, height: 540 };
 
@@ -9,8 +22,14 @@ const defaultFonts = [
   "Times New Roman",
   "Verdana",
   "Courier New",
+  "Roboto",
+  "Open Sans",
+  "Montserrat",
+  "Lobster",
+  "Pacifico",
 ];
-const stickers = ["★", "♥", "✦", "✿", "❀", "✓"];
+
+const stickers = ["★", "♥", "✿", "❀", "✓", "🎂", "🎈", "🌸"];
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const makeId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -33,7 +52,6 @@ const createElement = (type, overrides = {}) => {
     zIndex: 1,
   };
 
-  // For image elements, don't include text property
   if (type === "image") {
     delete base.text;
   }
@@ -80,8 +98,7 @@ const normalizeDesign = (design, title = "", description = "") => {
   };
 };
 
-// Helper to compress image before saving
-const compressImage = (dataUrl, maxWidth = 800, quality = 0.7) => {
+const compressImage = (dataUrl, maxWidth = 1200, quality = 0.9) => {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
@@ -92,16 +109,46 @@ const compressImage = (dataUrl, maxWidth = 800, quality = 0.7) => {
       if (width > maxWidth) {
         height = (height * maxWidth) / width;
         width = maxWidth;
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/png", quality));
+      } else {
+        resolve(dataUrl);
       }
-
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL("image/jpeg", quality));
     };
     img.src = dataUrl;
   });
+};
+
+// CKEditor cấu hình đơn giản hơn (tránh xung đột)
+const ckEditorConfig = {
+  toolbar: {
+    items: [
+      "bold",
+      "italic",
+      "underline",
+      "strikethrough",
+      "|",
+      "bulletedList",
+      "numberedList",
+      "|",
+      "undo",
+      "redo",
+    ],
+    shouldNotGroupWhenFull: true,
+  },
+  placeholder: "Nhập nội dung thiệp...",
+  removePlugins: [
+    "Title",
+    "MediaEmbed",
+    "Table",
+    "TableToolbar",
+    "TableProperties",
+    "TableCellProperties",
+  ],
+  language: "vi",
 };
 
 function CardDesigner({
@@ -113,8 +160,15 @@ function CardDesigner({
 }) {
   const canvasRef = useRef(null);
   const dragRef = useRef(null);
+  const resizeRef = useRef(null);
   const [selectedId, setSelectedId] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [contextMenu, setContextMenu] = useState({
+    visible: false,
+    x: 0,
+    y: 0,
+    elementId: null,
+  });
 
   const design = useMemo(
     () => normalizeDesign(value, title, description),
@@ -126,25 +180,11 @@ function CardDesigner({
   );
 
   const emitChange = (nextDesign) => {
-    // Clean up design data before saving (remove temporary data if needed)
     const cleanDesign = {
       ...nextDesign,
       backgroundColor: nextDesign.backgroundColor || "#fff7ed",
       canvas: canvasSize,
     };
-
-    // For debugging: check if there are any base64 images that are too large
-    if (process.env.NODE_ENV === "development") {
-      const images = cleanDesign.elements.filter((el) => el.type === "image");
-      images.forEach((img) => {
-        if (img.src && img.src.length > 500000) {
-          // 500KB warning
-          console.warn(
-            `Large image detected (${Math.round(img.src.length / 1024)}KB). Consider compressing before saving.`,
-          );
-        }
-      });
-    }
 
     onChange?.(cleanDesign);
   };
@@ -183,17 +223,12 @@ function CardDesigner({
       ),
     });
     setSelectedId(null);
+    setContextMenu({ visible: false, x: 0, y: 0, elementId: null });
   };
 
   const duplicateSelected = () => {
     if (!selectedElement) return;
-    // Don't duplicate images with base64 data (to avoid memory issues)
-    if (selectedElement.type === "image") {
-      alert(
-        "Please upload the image again instead of duplicating to save memory.",
-      );
-      return;
-    }
+
     addElement(selectedElement.type, {
       ...selectedElement,
       id: makeId(),
@@ -204,9 +239,22 @@ function CardDesigner({
 
   const moveLayer = (direction) => {
     if (!selectedElement) return;
-    updateElement(selectedElement.id, {
-      zIndex: clamp((selectedElement.zIndex || 1) + direction, 1, 99),
-    });
+
+    const currentZ = selectedElement.zIndex || 1;
+    const targetZ = currentZ + direction;
+
+    if (targetZ < 1 || targetZ > 99) return;
+
+    const elementToSwap = design.elements.find(
+      (el) => (el.zIndex || 1) === targetZ && el.id !== selectedElement.id,
+    );
+
+    if (elementToSwap) {
+      updateElement(selectedElement.id, { zIndex: targetZ });
+      updateElement(elementToSwap.id, { zIndex: currentZ });
+    } else {
+      updateElement(selectedElement.id, { zIndex: targetZ });
+    }
   };
 
   const getCanvasPoint = (event) => {
@@ -220,10 +268,112 @@ function CardDesigner({
     };
   };
 
+  const handleResizeStart = (event, element, handle) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const startPoint = getCanvasPoint(event);
+    resizeRef.current = {
+      id: element.id,
+      handle: handle,
+      startX: startPoint.x,
+      startY: startPoint.y,
+      startWidth: element.width,
+      startHeight: element.height,
+      startXPos: element.x,
+      startYPos: element.y,
+    };
+  };
+
+  const handleResizeMove = (event) => {
+    if (!resizeRef.current || readOnly) return;
+
+    const currentPoint = getCanvasPoint(event);
+    const {
+      id,
+      handle,
+      startX,
+      startY,
+      startWidth,
+      startHeight,
+      startXPos,
+      startYPos,
+    } = resizeRef.current;
+    const element = design.elements.find((item) => item.id === id);
+    if (!element) return;
+
+    let newWidth = startWidth;
+    let newHeight = startHeight;
+    let newX = startXPos;
+    let newY = startYPos;
+
+    const dx = currentPoint.x - startX;
+    const dy = currentPoint.y - startY;
+
+    switch (handle) {
+      case "se":
+        newWidth = Math.max(30, startWidth + dx);
+        newHeight = Math.max(30, startHeight + dy);
+        break;
+      case "sw":
+        newWidth = Math.max(30, startWidth - dx);
+        newX = startXPos + (startWidth - newWidth);
+        newHeight = Math.max(30, startHeight + dy);
+        break;
+      case "ne":
+        newWidth = Math.max(30, startWidth + dx);
+        newHeight = Math.max(30, startHeight - dy);
+        newY = startYPos + (startHeight - newHeight);
+        break;
+      case "nw":
+        newWidth = Math.max(30, startWidth - dx);
+        newX = startXPos + (startWidth - newWidth);
+        newHeight = Math.max(30, startHeight - dy);
+        newY = startYPos + (startHeight - newHeight);
+        break;
+      case "e":
+        newWidth = Math.max(30, startWidth + dx);
+        break;
+      case "w":
+        newWidth = Math.max(30, startWidth - dx);
+        newX = startXPos + (startWidth - newWidth);
+        break;
+      case "s":
+        newHeight = Math.max(30, startHeight + dy);
+        break;
+      case "n":
+        newHeight = Math.max(30, startHeight - dy);
+        newY = startYPos + (startHeight - newHeight);
+        break;
+    }
+
+    newX = clamp(newX, 0, canvasSize.width - newWidth);
+    newY = clamp(newY, 0, canvasSize.height - newHeight);
+
+    updateElement(id, {
+      width: newWidth,
+      height: newHeight,
+      x: newX,
+      y: newY,
+    });
+  };
+
+  const handleResizeEnd = () => {
+    resizeRef.current = null;
+  };
+
   const handlePointerDown = (event, element) => {
     if (readOnly) return;
+
+    // Chỉ bắt đầu kéo khi click vào element, không phải resize handle
+    if (event.target.classList?.contains("resize-handle")) {
+      return;
+    }
+
     event.preventDefault();
+    event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
+
     const point = getCanvasPoint(event);
     dragRef.current = {
       id: element.id,
@@ -234,34 +384,40 @@ function CardDesigner({
   };
 
   const handlePointerMove = (event) => {
-    if (!dragRef.current || readOnly) return;
-    const point = getCanvasPoint(event);
-    const element = design.elements.find(
-      (item) => item.id === dragRef.current.id,
-    );
-    if (!element) return;
+    if (resizeRef.current) {
+      handleResizeMove(event);
+    } else if (dragRef.current && !readOnly) {
+      const point = getCanvasPoint(event);
+      const element = design.elements.find(
+        (item) => item.id === dragRef.current.id,
+      );
+      if (!element) return;
 
-    updateElement(element.id, {
-      x: clamp(
-        point.x - dragRef.current.offsetX,
-        0,
-        canvasSize.width - element.width,
-      ),
-      y: clamp(
-        point.y - dragRef.current.offsetY,
-        0,
-        canvasSize.height - element.height,
-      ),
-    });
+      updateElement(element.id, {
+        x: clamp(
+          point.x - dragRef.current.offsetX,
+          0,
+          canvasSize.width - element.width,
+        ),
+        y: clamp(
+          point.y - dragRef.current.offsetY,
+          0,
+          canvasSize.height - element.height,
+        ),
+      });
+    }
   };
 
   const handlePointerUp = () => {
     dragRef.current = null;
+    handleResizeEnd();
   };
 
   const handleDrop = (event) => {
     if (readOnly) return;
     event.preventDefault();
+    event.stopPropagation();
+
     const payload = JSON.parse(
       event.dataTransfer.getData("application/json") || "{}",
     );
@@ -275,14 +431,18 @@ function CardDesigner({
     });
   };
 
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
   const handleImage = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Check file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
+    if (file.size > 5 * 1024 * 1024) {
       alert(
-        "Image size should be less than 2MB. Please choose a smaller image.",
+        "Image size should be less than 5MB. Please choose a smaller image.",
       );
       event.target.value = "";
       return;
@@ -294,19 +454,17 @@ function CardDesigner({
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
-          // Compress image before adding
           const compressedImage = await compressImage(
             e.target.result,
-            600,
-            0.8,
+            1200,
+            0.9,
           );
-
           addElement("image", {
             src: compressedImage,
             x: 160,
             y: 130,
-            width: 220,
-            height: 150,
+            width: 300,
+            height: 200,
           });
         } catch (error) {
           console.error("Error processing image:", error);
@@ -330,6 +488,193 @@ function CardDesigner({
     }
   };
 
+  const handleContextMenu = (event, element) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({
+      visible: true,
+      x: event.clientX,
+      y: event.clientY,
+      elementId: element.id,
+    });
+    setSelectedId(element.id);
+  };
+
+  const closeContextMenu = () => {
+    setContextMenu({ visible: false, x: 0, y: 0, elementId: null });
+  };
+
+  const handleContextMenuAction = (action) => {
+    const element = design.elements.find(
+      (el) => el.id === contextMenu.elementId,
+    );
+    if (!element) return;
+
+    switch (action) {
+      case "duplicate":
+        addElement(element.type, {
+          ...element,
+          id: makeId(),
+          x: element.x + 24,
+          y: element.y + 24,
+        });
+        break;
+      case "delete":
+        emitChange({
+          ...design,
+          elements: design.elements.filter((el) => el.id !== element.id),
+        });
+        if (selectedId === element.id) setSelectedId(null);
+        break;
+      case "bringToFront":
+        const maxZ = Math.max(...design.elements.map((el) => el.zIndex || 1));
+        updateElement(element.id, { zIndex: maxZ + 1 });
+        break;
+      case "sendToBack":
+        const minZ = Math.min(...design.elements.map((el) => el.zIndex || 1));
+        updateElement(element.id, { zIndex: minZ - 1 });
+        break;
+      default:
+        break;
+    }
+    closeContextMenu();
+  };
+
+  useEffect(() => {
+    const handleClickOutside = () => closeContextMenu();
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
+
+  const renderResizeHandles = (element) => {
+    if (selectedId !== element.id || readOnly) return null;
+
+    const handleStyle = {
+      position: "absolute",
+      background: "#fff",
+      border: "2px solid #3b82f6",
+      width: "10px",
+      height: "10px",
+      borderRadius: "50%",
+      zIndex: 1001,
+      cursor: "pointer",
+      pointerEvents: "auto",
+    };
+
+    return (
+      <>
+        <div
+          className="resize-handle"
+          style={{
+            ...handleStyle,
+            cursor: "nw-resize",
+            top: "-5px",
+            left: "-5px",
+          }}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            handleResizeStart(e, element, "nw");
+          }}
+        />
+        <div
+          className="resize-handle"
+          style={{
+            ...handleStyle,
+            cursor: "ne-resize",
+            top: "-5px",
+            right: "-5px",
+          }}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            handleResizeStart(e, element, "ne");
+          }}
+        />
+        <div
+          className="resize-handle"
+          style={{
+            ...handleStyle,
+            cursor: "sw-resize",
+            bottom: "-5px",
+            left: "-5px",
+          }}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            handleResizeStart(e, element, "sw");
+          }}
+        />
+        <div
+          className="resize-handle"
+          style={{
+            ...handleStyle,
+            cursor: "se-resize",
+            bottom: "-5px",
+            right: "-5px",
+          }}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            handleResizeStart(e, element, "se");
+          }}
+        />
+        <div
+          className="resize-handle"
+          style={{
+            ...handleStyle,
+            cursor: "n-resize",
+            top: "-5px",
+            left: "50%",
+            transform: "translateX(-50%)",
+          }}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            handleResizeStart(e, element, "n");
+          }}
+        />
+        <div
+          className="resize-handle"
+          style={{
+            ...handleStyle,
+            cursor: "s-resize",
+            bottom: "-5px",
+            left: "50%",
+            transform: "translateX(-50%)",
+          }}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            handleResizeStart(e, element, "s");
+          }}
+        />
+        <div
+          className="resize-handle"
+          style={{
+            ...handleStyle,
+            cursor: "w-resize",
+            left: "-5px",
+            top: "50%",
+            transform: "translateY(-50%)",
+          }}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            handleResizeStart(e, element, "w");
+          }}
+        />
+        <div
+          className="resize-handle"
+          style={{
+            ...handleStyle,
+            cursor: "e-resize",
+            right: "-5px",
+            top: "50%",
+            transform: "translateY(-50%)",
+          }}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            handleResizeStart(e, element, "e");
+          }}
+        />
+      </>
+    );
+  };
+
   const renderElement = (element) => {
     const style = {
       left: `${(element.x / canvasSize.width) * 100}%`,
@@ -343,6 +688,9 @@ function CardDesigner({
       borderRadius: `${element.borderRadius || 0}px`,
       transform: `rotate(${element.rotation || 0}deg)`,
       zIndex: element.zIndex || 1,
+      cursor: "move",
+      position: "absolute",
+      boxSizing: "border-box",
     };
 
     return (
@@ -352,14 +700,41 @@ function CardDesigner({
         style={style}
         onPointerDown={(event) => handlePointerDown(event, element)}
         onClick={(event) => event.stopPropagation()}
+        onContextMenu={(event) => handleContextMenu(event, element)}
       >
         {element.type === "image" && element.src && (
-          <img src={element.src} alt="Uploaded" draggable="false" />
+          <img
+            src={element.src}
+            alt="Uploaded"
+            draggable="false"
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              pointerEvents: "none",
+              userSelect: "none",
+            }}
+          />
         )}
         {(element.type === "text" || element.type === "sticker") && (
-          <span>{element.text}</span>
+          <div
+            dangerouslySetInnerHTML={{ __html: element.text }}
+            style={{
+              pointerEvents: "none",
+              userSelect: "none",
+              width: "100%",
+              height: "100%",
+              overflow: "auto",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          />
         )}
-        {element.type === "shape" && <span style={{ opacity: 0 }}>shape</span>}
+        {element.type === "shape" && (
+          <span style={{ opacity: 0, pointerEvents: "none" }}>shape</span>
+        )}
+        {renderResizeHandles(element)}
       </div>
     );
   };
@@ -370,13 +745,19 @@ function CardDesigner({
         <aside className="designer-panel designer-tools">
           <h2>Chi tiết</h2>
           <button type="button" onClick={() => addElement("text")}>
-            Thêm chữ
+            <Type size={16} /> Thêm chữ
           </button>
           <button type="button" onClick={() => addElement("shape")}>
-            Thêm khối màu
+            <Square size={16} /> Thêm khối màu
           </button>
           <label className="designer-upload">
-            {uploadingImage ? "Đang xử lý ảnh..." : "Thêm ảnh"}
+            {uploadingImage ? (
+              <>📤 Đang xử lý ảnh...</>
+            ) : (
+              <>
+                <ImageIcon size={16} /> Thêm ảnh
+              </>
+            )}
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
@@ -386,25 +767,29 @@ function CardDesigner({
           </label>
 
           <div className="designer-stickers">
-            {stickers.map((sticker) => (
-              <button
-                key={sticker}
-                type="button"
-                draggable
-                onDragStart={(event) => {
-                  event.dataTransfer.setData(
-                    "application/json",
-                    JSON.stringify({ type: "sticker", text: sticker }),
-                  );
-                }}
-                onClick={() => addElement("sticker", { text: sticker })}
-              >
-                {sticker}
-              </button>
-            ))}
+            <div className="stickers-grid">
+              {stickers.map((sticker) => (
+                <button
+                  key={sticker}
+                  type="button"
+                  draggable
+                  onDragStart={(event) => {
+                    event.dataTransfer.setData(
+                      "application/json",
+                      JSON.stringify({ type: "sticker", text: sticker }),
+                    );
+                  }}
+                  onClick={() => addElement("sticker", { text: sticker })}
+                >
+                  {sticker}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <p>Kéo sticker vào thiệp hoặc bấm để thêm nhanh.</p>
+          <p className="designer-hint">
+            💡 Kéo sticker vào thiệp hoặc bấm để thêm nhanh.
+          </p>
         </aside>
       )}
 
@@ -413,7 +798,7 @@ function CardDesigner({
           ref={canvasRef}
           className="designer-stage"
           style={{ backgroundColor: design.backgroundColor }}
-          onDragOver={(event) => event.preventDefault()}
+          onDragOver={handleDragOver}
           onDrop={handleDrop}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -431,7 +816,7 @@ function CardDesigner({
           <h2>Tùy chỉnh</h2>
 
           <label>
-            Màu nền thiệp
+            <Palette size={14} /> Màu nền thiệp
             <input
               type="color"
               value={design.backgroundColor}
@@ -441,28 +826,34 @@ function CardDesigner({
             />
           </label>
 
-          {!selectedElement && <p>Chọn một chi tiết trên thiệp để chỉnh.</p>}
+          {!selectedElement && <p>🔍 Chọn một chi tiết trên thiệp để chỉnh.</p>}
 
           {selectedElement && (
             <>
               {(selectedElement.type === "text" ||
                 selectedElement.type === "sticker") && (
-                <label>
-                  Nội dung
-                  <textarea
-                    value={selectedElement.text}
-                    onChange={(event) =>
-                      updateElement(selectedElement.id, {
-                        text: event.target.value,
-                      })
-                    }
-                    rows="3"
-                  />
-                </label>
+                <div
+                  className="ckeditor-wrapper"
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <label>✏️ Nội dung</label>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <CKEditor
+                      editor={ClassicEditor}
+                      data={selectedElement.text || ""}
+                      onChange={(event, editor) => {
+                        const data = editor.getData();
+                        updateElement(selectedElement.id, { text: data });
+                      }}
+                      config={ckEditorConfig}
+                      disabled={readOnly}
+                    />
+                  </div>
+                </div>
               )}
 
               <label>
-                Màu chữ
+                🎨 Màu chữ
                 <input
                   type="color"
                   value={selectedElement.color || "#243042"}
@@ -476,7 +867,7 @@ function CardDesigner({
 
               {selectedElement.type === "shape" && (
                 <label>
-                  Màu khối
+                  🟦 Màu khối
                   <input
                     type="color"
                     value={selectedElement.backgroundColor || "#ffd166"}
@@ -490,7 +881,7 @@ function CardDesigner({
               )}
 
               <label>
-                Cỡ chữ
+                📏 Cỡ chữ ({selectedElement.fontSize || 28}px)
                 <input
                   type="range"
                   min="12"
@@ -505,7 +896,7 @@ function CardDesigner({
               </label>
 
               <label>
-                Font
+                🔤 Font
                 <select
                   value={selectedElement.fontFamily || "Arial"}
                   onChange={(event) =>
@@ -524,7 +915,7 @@ function CardDesigner({
 
               <div className="designer-grid-controls">
                 <label>
-                  Rộng
+                  📐 Rộng
                   <input
                     type="number"
                     min="30"
@@ -538,7 +929,7 @@ function CardDesigner({
                   />
                 </label>
                 <label>
-                  Cao
+                  📏 Cao
                   <input
                     type="number"
                     min="30"
@@ -554,11 +945,11 @@ function CardDesigner({
               </div>
 
               <label>
-                Xoay
+                <RotateCw size={14} /> Xoay ({selectedElement.rotation || 0}°)
                 <input
                   type="range"
-                  min="-45"
-                  max="45"
+                  min="-180"
+                  max="180"
                   value={selectedElement.rotation || 0}
                   onChange={(event) =>
                     updateElement(selectedElement.id, {
@@ -570,25 +961,52 @@ function CardDesigner({
 
               <div className="designer-actions-small">
                 <button type="button" onClick={() => moveLayer(1)}>
-                  Đưa lên
+                  ⬆️ Đưa lên
                 </button>
                 <button type="button" onClick={() => moveLayer(-1)}>
-                  Đưa xuống
+                  ⬇️ Đưa xuống
                 </button>
                 <button type="button" onClick={duplicateSelected}>
-                  Nhân bản
+                  <Copy size={14} /> Nhân bản
                 </button>
                 <button
                   type="button"
                   className="danger"
                   onClick={deleteSelected}
                 >
-                  Xóa
+                  <Trash2 size={14} /> Xóa
                 </button>
               </div>
             </>
           )}
         </aside>
+      )}
+
+      {/* Context Menu */}
+      {contextMenu.visible && !readOnly && (
+        <div
+          className="context-menu"
+          style={{
+            position: "fixed",
+            top: contextMenu.y,
+            left: contextMenu.x,
+            zIndex: 10000,
+          }}
+        >
+          <button onClick={() => handleContextMenuAction("duplicate")}>
+            <Copy size={14} /> Nhân bản
+          </button>
+          <button onClick={() => handleContextMenuAction("delete")}>
+            <Trash2 size={14} /> Xóa
+          </button>
+          <hr />
+          <button onClick={() => handleContextMenuAction("bringToFront")}>
+            <BringToFront size={14} /> Đưa lên đầu
+          </button>
+          <button onClick={() => handleContextMenuAction("sendToBack")}>
+            <SendToBack size={14} /> Đưa xuống cuối
+          </button>
+        </div>
       )}
     </div>
   );
