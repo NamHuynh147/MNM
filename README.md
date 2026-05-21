@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-=======
 # 🎨 Ứng Dụng Tạo Thiệp Mời
->>>>>>> dev
 
 Một ứng dụng web hiện đại để tạo, chỉnh sửa và quản lý thiệp mời đẹp. Xây dựng bằng React, Node.js, Express, và PostgreSQL.
 
@@ -117,6 +114,7 @@ docker-compose up
 ```
 
 Điều này sẽ khởi động:
+
 - PostgreSQL tại port 5432
 - Backend API tại port 5000
 - Frontend tại port 5173
@@ -175,6 +173,7 @@ testgis/
 ## 📊 Database Schema
 
 ### templates table
+
 ```sql
 - template_id (Primary Key)
 - name
@@ -186,6 +185,7 @@ testgis/
 ```
 
 ### users table
+
 ```sql
 - user_id (Primary Key)
 - name
@@ -194,6 +194,7 @@ testgis/
 ```
 
 ### cards table
+
 ```sql
 - card_id (Primary Key)
 - template_id (Foreign Key)
@@ -208,10 +209,12 @@ testgis/
 ## 🔌 API Endpoints
 
 ### Templates
+
 - `GET /api/templates` - Lấy tất cả templates
 - `GET /api/templates/:id` - Lấy template theo ID
 
 ### Cards
+
 - `GET /api/cards` - Lấy tất cả cards
 - `GET /api/cards/:id` - Lấy card theo ID
 - `POST /api/cards` - Tạo card mới
@@ -219,6 +222,7 @@ testgis/
 - `DELETE /api/cards/:id` - Xóa card
 
 ### Users
+
 - `GET /api/users` - Lấy tất cả users
 - `POST /api/users` - Tạo user mới
 
@@ -250,6 +254,7 @@ curl -X POST http://localhost:5000/api/cards \
 **Vấn đề:** `Error: connect ECONNREFUSED 127.0.0.1:5432`
 
 **Giải pháp:**
+
 1. Kiểm tra PostgreSQL đang chạy
 2. Kiểm tra `.env` có đúng DB_HOST, DB_PORT, DB_USER, DB_PASSWORD
 3. Kiểm tra database `testgis_db` tồn tại
@@ -263,6 +268,7 @@ curl -X POST http://localhost:5000/api/cards \
 **Vấn đề:** Fetch failed từ http://localhost:5000
 
 **Giải pháp:**
+
 1. Kiểm tra backend đang chạy: http://localhost:5000/health
 2. Kiểm tra `.env` có `VITE_API_URL=http://localhost:5000/api`
 3. Kiểm tra CORS enabled trong backend (đã enable sẵn)
@@ -272,6 +278,7 @@ curl -X POST http://localhost:5000/api/cards \
 **Vấn đề:** Container không start
 
 **Giải pháp:**
+
 ```bash
 # Xem logs
 docker-compose logs -f
@@ -310,7 +317,7 @@ npm start        # Chạy production
 
 ## 📚 Công Nghệ Sử Dụng
 
-- **Frontend:** React 18, Vite, React Router v7
+- **Frontend:** React 18, Vite, React Router v7, CKEditor 5
 - **Backend:** Node.js, Express.js
 - **Database:** PostgreSQL 15
 - **Containerization:** Docker, Docker Compose
@@ -344,7 +351,9 @@ Nếu bạn gặp vấn đề:
 
 ## 📄 Giấy Phép
 
-MIT License - Miễn phí sử dụng cho cá nhân và dự án thương mại
+### Giấy phép (License):
+
+- Dự án này được bảo hộ bởi giấy phép **GNU GPLv3** (Xem chi tiết tại file LICENSE).
 
 ---
 
